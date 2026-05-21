@@ -159,7 +159,7 @@
             line-height: 1.6;
             color: #334155;
         }
-        .tutorial-section ul {
+        .tutorial-section ul, .tutorial-section ol {
             margin: 0;
             padding-left: 20px;
             font-size: 12px;
@@ -196,6 +196,30 @@
             border-radius: 4px;
             color: #64748b;
             font-weight: bold;
+        }
+
+        /* チュートリアル用の履歴モックUIスタイル */
+        .tutorial-ex-history {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 6px 10px;
+            margin-top: 6px;
+            font-size: 12px;
+            border: 1px solid #cbd5e1;
+        }
+        .tutorial-ex-history-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 4px 10px;
+            width: 130px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
         /* --- プレイ画面のスタイル --- */
@@ -402,71 +426,97 @@
     <div class="setup-container tutorial-container" style="max-width: 550px;">
         <div class="tutorial-content">
             
+            <!-- 概要 -->
             <div class="tutorial-section" style="border-left: 4px solid var(--primary-color);">
                 <div class="tutorial-heading">💡 ゲーム概要</div>
                 <p><strong>「超音波の結果から、隠された宝石配置を推理するゲームです。」</strong></p>
-                <p>親（コンピュータ）が盤面上にランダムに隠した複数の宝石の「正確な位置と回転方向」を、外周から超音波を打ち込んだシミュレーション結果（色と出口位置）を手がかりに特定します。</p>
+                <p>コンピュータが盤面上にランダムに隠した複数の宝石の「正確な位置と回転方向」を、外周から超音波を打ち込み、その結果（色と出口位置）を手がかりに特定します。</p>
             </div>
             
-            <!-- 【図解セクション微調整】 -->
+            <!-- 手順 -->
             <div class="tutorial-section">
-                <div class="tutorial-heading">🔄 超音波の進み方の実例</div>
-                <p>実際のゲーム盤面（マス目、斜辺、枠、境界壁）と同じ見た目の 6×4 サンプル盤面を使った、超音波の挙動の実例です。</p>
+                <div class="tutorial-heading">📝 ゲームの進め方</div>
+                <ol>
+                    <li>ゲームが始まると、ボード上に宝石がランダムに隠されます。</li>
+                    <li>外周のラベルをタップして<strong>超音波</strong>を打ち込みます。</li>
+                    <li>発射点・到達点・色の結果から、宝石の場所と向きを<strong>推理</strong>します。</li>
+                    <li>持ち駒を盤面にドラッグし、宝石を<strong>配置・回転</strong>させます。</li>
+                    <li>すべて配置したら<strong>「答え合わせ」</strong>！間違っていたら配置を直して再挑戦できます。どうしても分からない時は「正解を表示」で答えを確認できます。</li>
+                </ol>
+            </div>
+
+            <!-- 配置ルール（最重要） -->
+            <div class="tutorial-section" style="border-left: 4px solid #f59e0b;">
+                <div class="tutorial-heading">💎 宝石の配置ルール（最重要）</div>
+                <p>隠されている宝石の配置には以下のルールがあります。推理の参考にしてください。</p>
+                <ul style="margin-top: 6px;">
+                    <li><strong>【NG】</strong> 宝石の<strong>辺と辺がぴったり接する</strong>（壁同士が衝突する）配置はありません。</li>
+                    <li><strong>【OK】</strong> 宝石の<strong>角と角</strong>、または<strong>角と辺</strong>が接する配置は存在します。</li>
+                </ul>
+            </div>
+
+            <!-- 超音波の挙動と推理 -->
+            <div class="tutorial-section">
+                <div class="tutorial-heading">🌊 超音波の挙動と推理</div>
+                <p>外周から発射された超音波は、盤面内の宝石に当たると以下のように動きます。</p>
+                <div class="tutorial-figure" style="margin-top:4px; margin-bottom: 12px;">
+                    <div>【斜辺】に当たると ➔ 90度曲がる（反射）</div>
+                    <div>【平面の壁】に当たると ➔ 180度逆戻りする（跳ね返り）</div>
+                </div>
+                <p>この結果は<strong>「発射履歴」</strong>にログとして残ります。</p>
+                <ul style="margin-bottom: 0;">
+                    <li>出発点・到達点・通過した宝石の色を確認し、配置を推理します。</li>
+                    <li>複数の宝石を通過した場合は<strong>色が混ざります</strong>。色の混ざり方はゲーム画面の「混色表」を参照してください。</li>
+                </ul>
+            </div>
+
+            <!-- 図解セクション -->
+            <div class="tutorial-section">
+                <div class="tutorial-heading">🔄 超音波と履歴の実例</div>
+                <p>実際のゲーム盤面と同じ見た目の 6×4 サンプル盤面を使った、超音波の挙動と履歴の例です。</p>
                 
                 <div class="tutorial-canvas-container">
-                    <!-- サイズ調整: ラベルと被らないようマージンを広く取る -->
                     <canvas id="tutorialCanvas" width="240" height="180"></canvas>
                     <div class="tutorial-canvas-desc">
+                        <!-- 例1 -->
                         <div style="margin-bottom: 8px;">
                             <strong>① 【1 ➔ 3】 の例（90度反射 ＆ 混色）：</strong><br>
                             発射口 <strong>1</strong> から発射された超音波は、<strong>黄宝石</strong> (B1) の斜辺で右に90度屈折し、さらに<strong>赤宝石</strong> (B3) の斜辺で上に90度屈折して、出口 <strong>3</strong> から出ていきます。<br>
-                            この際、超音波は「黄宝石」と「赤宝石」の両方を通過するため、混色により最終的に <strong>● 橙</strong> が結果として検出されます。
+                            「黄宝石」と「赤宝石」の両方を通過するため、色が混ざります。<br>
+                            <div class="tutorial-ex-history">
+                                <span style="font-weight: bold; color: #475569;">実際の発射履歴 ➔</span>
+                                <div class="tutorial-ex-history-inner">
+                                    <span>1 → 3</span>
+                                    <span class="history-label" id="tut-ex1-label"></span>
+                                </div>
+                            </div>
                         </div>
-                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 8px 0;">
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0;">
+                        <!-- 例2 -->
                         <div>
                             <strong>② 【4 ➔ 4】 の例（180度壁反射）：</strong><br>
                             発射口 <strong>4</strong> から発射された超音波は、A4の空きマスを通過し、<strong>赤宝石</strong> (B4) に進入した直後、上部にある<strong>太線（境界壁）</strong>に直撃します。<br>
                             平面の壁に当たるため180度跳ね返り、そのまま発射口 <strong>4</strong> へと逆戻りします。<br>
-                            この際、超音波は「赤宝石」のマスに触れてから戻るため、 <strong>● 赤</strong> が結果として検出されます。
+                            <div class="tutorial-ex-history">
+                                <span style="font-weight: bold; color: #475569;">実際の発射履歴 ➔</span>
+                                <div class="tutorial-ex-history-inner">
+                                    <span>4 → 4</span>
+                                    <span class="history-label" id="tut-ex2-label"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- 操作方法 -->
             <div class="tutorial-section">
-                <div class="tutorial-heading">1. 超音波の撃ち方</div>
-                <p>盤面の外周にある数字（上・右）やアルファベット（下・左）を<strong>タップ</strong>すると、そこから一直線に超音波を発射できます。</p>
-                <div class="tutorial-figure" style="margin-top:4px;">
-                    <div>【斜辺】に当たると ➔ 90度曲がる（反射）</div>
-                    <div>【平面の壁】に当たると ➔ 180度逆戻りする（跳ね返り）</div>
-                </div>
-            </div>
-            
-            <div class="tutorial-section">
-                <div class="tutorial-heading">2. 色の見方</div>
-                <p>超音波が複数の宝石に当たると、色が混ざって外に出てきます。この色から経由した宝石を推測します。</p>
-                <div id="tutorial-colors-container" class="color-chart-grid" style="grid-template-columns: 1fr; margin-top: 8px;">
-                    <!-- JSで動的に追加されます -->
-                </div>
-            </div>
-            
-            <div class="tutorial-section">
-                <div class="tutorial-heading">3. 宝石の配置ルール</div>
-                <p>右側の「持ち駒」パレットから宝石を<strong>ドラッグ</strong>して、盤面に仮置きします。</p>
+                <div class="tutorial-heading">🎮 宝石の操作方法</div>
+                <p>右側の「持ち駒」パレットから宝石を<strong>ドラッグ</strong>して、盤面に仮置きします。盤面に配置した宝石を<strong>タップ</strong>すると、90度ずつ回転します。</p>
                 <ul>
-                    <li>宝石同士の壁が重ならなければ、隣接（角接触・点接触・斜め接触）させてもOKです。</li>
-                    <li>少し盤外にはみ出しても、1マスでも盤内に入っていれば保持されます。</li>
+                    <li>仮置き中は、少し盤外にはみ出しても1マスでも盤内に入っていれば保持されます。</li>
+                    <li>プレイヤーが仮置きする際は、ルール（辺同士の接触NGなど）を無視して自由に試行錯誤することができます。</li>
                 </ul>
-            </div>
-            
-            <div class="tutorial-section">
-                <div class="tutorial-heading">4. 回転操作</div>
-                <p>盤面に配置した宝石を<strong>タップ</strong>すると、90度ずつ回転します。推理に合わせて向きを調整してください。</p>
-            </div>
-            
-            <div class="tutorial-section">
-                <div class="tutorial-heading">5. 正解判定</div>
-                <p>すべての宝石を配置したら、右下の<strong>「答え合わせ」</strong>ボタンを押して正解かどうか確認してください。</p>
             </div>
 
         </div>
@@ -592,7 +642,10 @@
     function showTutorial() {
         document.getElementById('setupScreen').classList.remove('active');
         document.getElementById('tutorialScreen').classList.add('active');
-        initTutorialColors();
+        
+        // チュートリアル用の実例ラベルを動的生成
+        document.getElementById('tut-ex1-label').innerHTML = createColorLabelHTML('橙');
+        document.getElementById('tut-ex2-label').innerHTML = createColorLabelHTML('赤');
         
         // チュートリアル固定図解盤面の描画
         setTimeout(drawTutorialCanvas, 50);
@@ -603,27 +656,7 @@
         document.getElementById('setupScreen').classList.add('active');
     }
 
-    function initTutorialColors() {
-        const container = document.getElementById('tutorial-colors-container');
-        if (container.innerHTML.trim() !== '') return; 
-
-        const examples = [
-            { colors: ['red', 'yellow'], res: '橙' },
-            { colors: ['red', 'blue'], res: '紫' },
-            { colors: ['yellow', 'blue'], res: '緑' }
-        ];
-
-        examples.forEach(r => {
-            const div = document.createElement('div');
-            div.className = 'chart-item';
-            let formulaHTML = r.colors.map(c => createColorDotHTML(c)).join('<span style="margin:0 4px;">+</span>');
-            let resHTML = `<span class="chart-label">${createColorLabelHTML(r.res)}</span>`;
-            div.innerHTML = `${formulaHTML}<span style="margin:0 8px;">=</span>${resHTML}`;
-            container.appendChild(div);
-        });
-    }
-
-    // --- 【図解盤面の修正】 矢印位置と「4 ➔ 4壁反射」の調整 (Tutorial Figure Canvas Modified) ---
+    // --- 図解盤面の描画 ---
     function drawTutorialCanvas() {
         const tCanvas = document.getElementById('tutorialCanvas');
         if (!tCanvas) return;
@@ -631,8 +664,8 @@
         
         const tCols = 6;
         const tRows = 4;
-        const tMarginX = 30; // 余裕をもたせる
-        const tMarginY = 30; // ラベルとビーム起点が被らないように広げる
+        const tMarginX = 30;
+        const tMarginY = 30;
         const tCellSize = 30; 
         
         tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
@@ -640,7 +673,6 @@
         tCtx.textAlign = "center";
         tCtx.textBaseline = "middle";
         
-        // 1. 外周ラベルの描画
         tCtx.fillStyle = "#ef4444";
         for (let x = 0; x < tCols; x++) {
             tCtx.fillText((x + 1).toString(), tMarginX + x * tCellSize + tCellSize/2, tMarginY/2);
@@ -652,22 +684,18 @@
         
         tCtx.translate(tMarginX, tMarginY);
         
-        // 2. 盤面データ (B4を壁反射の説明用に使用)
         const tBoard = Array.from({ length: tRows }, () => Array.from({ length: tCols }, () => ({
             color: null, s: 0, t: 0, b: 0, l: 0, r: 0
         })));
         
-        // 黄色宝石 (B1, C1, C2)
         tBoard[1][0] = { color: "yellow", s: 1, t: 0, b: 1, l: 1, r: 0 };
         tBoard[2][0] = { color: "yellow", s: 0, t: 0, b: 1, l: 1, r: 1 };
         tBoard[2][1] = { color: "yellow", s: 1, t: 0, b: 1, l: 0, r: 0 };
         
-        // 赤色宝石 (B3, B4, B5) - B4 は四方壁のマス
         tBoard[1][2] = { color: "red", s: -1, t: 0, b: 1, l: 1, r: 0 };
         tBoard[1][3] = { color: "red", s: 0, t: 1, b: 1, l: 1, r: 1 };
         tBoard[1][4] = { color: "red", s: -1, t: 0, b: 1, l: 0, r: 1 };
         
-        // 3. マス目・枠線・対角斜辺
         for (let y = 0; y < tRows; y++) {
             for (let x = 0; x < tCols; x++) {
                 const cx = x * tCellSize;
@@ -705,7 +733,6 @@
             }
         }
         
-        // 4. 太い境界壁(障害物)
         for (let y = 0; y < tRows; y++) {
             for (let x = 0; x < tCols; x++) {
                 const cx = x * tCellSize;
@@ -723,17 +750,15 @@
             }
         }
         
-        // 5. 超音波の進路可視化の描画
         tCtx.setLineDash([2, 2]); 
         
-        // --- ① 例1：発射口「1」➔ 進入 ➔ B1で屈折 ➔ B3で屈折 ➔ 出口「3」 ---
-        const p1_start = { x: 0 * tCellSize + tCellSize/2, y: -6 }; // 数字より下からスタートして被りを防ぐ
+        // --- ① 例1 ---
+        const p1_start = { x: 0 * tCellSize + tCellSize/2, y: -6 };
         const p1_bend1 = { x: 0 * tCellSize + tCellSize/2, y: 1 * tCellSize + tCellSize/2 };
         const p1_bend2 = { x: 2 * tCellSize + tCellSize/2, y: 1 * tCellSize + tCellSize/2 };
         const p1_end   = { x: 2 * tCellSize + tCellSize/2, y: -6 };
         
         tCtx.lineWidth = 3;
-        
         tCtx.strokeStyle = COLOR_HEX["red"];
         tCtx.beginPath();
         tCtx.moveTo(p1_start.x, p1_start.y);
@@ -752,7 +777,6 @@
         tCtx.lineTo(p1_end.x, p1_end.y);
         tCtx.stroke();
         
-        // 矢印（1入口・下向き）
         tCtx.fillStyle = COLOR_HEX["red"];
         tCtx.setLineDash([]);
         tCtx.beginPath();
@@ -761,7 +785,6 @@
         tCtx.lineTo(p1_start.x + 4, p1_start.y);
         tCtx.fill();
         
-        // 矢印（3出口・上向き）
         tCtx.fillStyle = COLOR_HEX["橙"];
         tCtx.beginPath();
         tCtx.moveTo(p1_end.x, p1_end.y - 6);
@@ -769,9 +792,9 @@
         tCtx.lineTo(p1_end.x + 4, p1_end.y);
         tCtx.fill();
         
-        // --- ② 例2：発射口「4」➔ B4内の上の境界壁で跳ね返り ➔ 出口「4」 ---
+        // --- ② 例2 ---
         const p2_start_in  = { x: 3 * tCellSize + tCellSize/2 - 3, y: -6 };
-        const p2_wall_in   = { x: 3 * tCellSize + tCellSize/2 - 3, y: 1 * tCellSize }; // B4マスの上辺(y=30)で反射
+        const p2_wall_in   = { x: 3 * tCellSize + tCellSize/2 - 3, y: 1 * tCellSize };
         const p2_wall_out  = { x: 3 * tCellSize + tCellSize/2 + 3, y: 1 * tCellSize };
         const p2_start_out = { x: 3 * tCellSize + tCellSize/2 + 3, y: -6 };
         
@@ -779,13 +802,11 @@
         tCtx.setLineDash([2, 2]);
         tCtx.strokeStyle = COLOR_HEX["red"];
         
-        // 往路（下向き）
         tCtx.beginPath();
         tCtx.moveTo(p2_start_in.x, p2_start_in.y);
         tCtx.lineTo(p2_wall_in.x, p2_wall_in.y);
         tCtx.stroke();
         
-        // 復路（上向き）
         tCtx.beginPath();
         tCtx.moveTo(p2_wall_out.x, p2_wall_out.y);
         tCtx.lineTo(p2_start_out.x, p2_start_out.y);
@@ -793,7 +814,6 @@
         
         tCtx.setLineDash([]);
         
-        // 往路下向き矢印
         tCtx.fillStyle = COLOR_HEX["red"];
         tCtx.beginPath();
         tCtx.moveTo(p2_start_in.x, p2_start_in.y + 6);
@@ -801,19 +821,17 @@
         tCtx.lineTo(p2_start_in.x + 3, p2_start_in.y);
         tCtx.fill();
         
-        // 復路上向き矢印
         tCtx.beginPath();
         tCtx.moveTo(p2_start_out.x, p2_start_out.y - 6);
         tCtx.lineTo(p2_start_out.x - 3, p2_start_out.y);
         tCtx.lineTo(p2_start_out.x + 3, p2_start_out.y);
         tCtx.fill();
         
-        // 衝突エフェクト
         tCtx.strokeStyle = "#ef4444";
         tCtx.lineWidth = 1.5;
         tCtx.beginPath();
         const collisionX = 3 * tCellSize + tCellSize/2;
-        const collisionY = 1 * tCellSize; // 衝突点はB4の上辺
+        const collisionY = 1 * tCellSize; 
         tCtx.moveTo(collisionX - 6, collisionY - 2);
         tCtx.lineTo(collisionX + 6, collisionY - 2);
         tCtx.moveTo(collisionX - 4, collisionY - 4);
