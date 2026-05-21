@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>オラパマイン・パズル</title>
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --panel-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --text-main: #0f172a;
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        /* 画面の切り替え管理 */
+        .screen {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        header { padding: 12px 8px 8px; text-align: center; width: 100%; max-width: 600px; }
+        h1 { margin: 0 0 6px 0; font-size: 22px; color: #1e293b; font-weight: 800; letter-spacing: 1px;}
+        .subtitle { font-size: 12px; color: #64748b; line-height: 1.5; padding: 0 10px; word-break: keep-all; font-weight: bold; }
+
+        /* --- 設定画面のスタイル --- */
+        .setup-container {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px;
+            max-width: 500px;
+            width: calc(100% - 40px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1e293b;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 10px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        @media (min-width: 400px) {
+            .preset-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .preset-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .preset-card:hover { border-color: var(--primary-color); background: #f0fdf4; }
+        .preset-card.active {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        .preset-name { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .preset-desc { font-size: 10px; color: #64748b; line-height: 1.3; }
+
+        .custom-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        .counter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .counter-row:last-child { border: none; }
+        .counter-name { font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+        .counter-controls { display: flex; align-items: center; gap: 10px; }
+        .counter-btn {
+            width: 28px; height: 28px; border-radius: 50%; border: 1px solid #cbd5e1;
+            background: white; font-weight: bold; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 16px;
+        }
+        .counter-btn:active { background: #e2e8f0; }
+        .counter-val { font-size: 14px; font-weight: bold; min-width: 20px; text-align: center; }
+
+        .start-btn {
+            width: 100%; padding: 14px; background-color: var(--primary-color);
+            color: white; border-radius: 8px; border: none; font-size: 16px;
+            font-weight: bold; cursor: pointer; transition: background 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        }
+        .start-btn:hover { background-color: var(--primary-hover); }
+        .start-btn:disabled { background-color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+
+        .warning-msg { color: #ef4444; font-size: 11px; text-align: center; margin-top: 8px; display: none; }
+
+        /* --- チュートリアル画面のスタイル --- */
+        .tutorial-container {
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+        .tutorial-content {
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+        .tutorial-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .tutorial-heading {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 4px;
+            font-size: 14px;
+        }
+        .tutorial-section p {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #334155;
+        }
+        .tutorial-section ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #334155;
+        }
+        
+        .tutorial-canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .tutorial-canvas-desc {
+            font-size: 11.5px;
+            color: #475569;
+            margin-top: 8px;
+            text-align: left;
+            width: 100%;
+            line-height: 1.5;
+        }
+
+        .tutorial-figure {
+            background: #fff;
+            border: 1px dashed #cbd5e1;
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+            margin-top: 8px;
+            border-radius: 4px;
+            color: #64748b;
+            font-weight: bold;
+        }
+
+        /* --- プレイ画面のスタイル --- */
+        .game-layout {
+            display: flex;
+            gap: 12px;
+            padding: 8px;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        @media (min-width: 1024px) {
+            .game-layout { flex-direction: row; align-items: flex-start; justify-content: center; }
+        }
+
+        .board-container {
+            background: #fff;
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 2px solid var(--border-color);
+        }
+
+        canvas { display: block; background-color: #fff; touch-action: none; }
+
+        .side-panel { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 450px; }
+
+        .panel-section {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .panel-title {
+            font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #334155;
+            border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+            display: flex; justify-content: space-between;
+        }
+
+        .history-list {
+            height: 120px; overflow-y: auto; font-size: 12px;
+            border: 1px solid #f1f5f9; background: #fafafa;
+        }
+
+        .history-item {
+            padding: 6px 8px; border-bottom: 1px solid #f1f5f9;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        
+        .history-label {
+            display: flex; align-items: center; font-weight: bold; color: #334155;
+        }
+
+        /* 共通の色ドットスタイル */
+        .color-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+            margin-right: 6px; vertical-align: middle; box-sizing: border-box;
+        }
+
+        .gem-palette { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        
+        .gem-piece {
+            padding: 8px 4px; border: 2px solid #e2e8f0; border-radius: 6px;
+            text-align: center; font-size: 11px; font-weight: bold;
+            background: #fff; transition: all 0.2s; user-select: none;
+            touch-action: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .gem-piece:active { transform: scale(0.95); }
+
+        .color-chart-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 6px; font-size: 10px; color: #475569;
+        }
+        .chart-item { display: flex; align-items: center; gap: 4px; padding: 6px 4px; background: #f8fafc; border-radius: 4px; border: 1px solid #f1f5f9; }
+        .chart-label { flex-grow: 1; display: flex; justify-content: flex-end; align-items: center; font-weight: bold; }
+
+        .controls { display: flex; flex-direction: column; gap: 8px; }
+        .btn-group { display: flex; gap: 8px; }
+        button {
+            flex: 1; padding: 12px; border-radius: 6px; border: none;
+            cursor: pointer; font-weight: bold; font-size: 14px;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+        }
+        .btn-check { background-color: #059669; color: white; }
+        .btn-reset { background-color: #64748b; color: white; }
+        .btn-reveal { background-color: #d97706; color: white; }
+
+        #status-msg { margin-top: 5px; font-weight: bold; text-align: center; min-height: 20px; font-size: 14px; }
+        
+        #drag-proxy {
+            position: fixed; pointer-events: none; z-index: 1000;
+            display: none; opacity: 0.9; padding: 10px; 
+            background: white; border: 3px solid #3b82f6; border-radius: 8px;
+            font-size: 12px; font-weight: bold; transform: translate(-50%, -120%);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 1. 設定画面 ==================== -->
+<div id="setupScreen" class="screen active">
+    <header>
+        <h1>オラパマイン</h1>
+        <div class="subtitle">ゲームモードと宝石の設定を選択してください</div>
+    </header>
+
+    <div class="setup-container">
+        <div class="setup-title">ゲームモード選択</div>
+        
+        <div class="preset-grid">
+            <div class="preset-card active" onclick="selectPreset(this, 'normal')">
+                <div class="preset-name">通常版</div>
+                <div class="preset-desc">標準セット<br>小・白(2) / 黄(1) / 赤(1) / 大・白(1) / 大・青(1)</div>
+            </div>
+            <div class="preset-card" onclick="selectPreset(this, 'easy')">
+                <div class="preset-name">簡単版</div>
+                <div class="preset-desc">通常版から<br>小さい白宝石を1つに減少</div>
+            </div>
+            <div class="preset-card" onclick="selectPreset(this, 'ext1')">
+                <div class="preset-name">拡張１</div>
+                <div class="preset-desc">通常セットに<br>「透明宝石(1)」を追加</div>
+            </div>
+            <div class="preset-card" onclick="selectPreset(this, 'ext2')">
+                <div class="preset-name">拡張２</div>
+                <div class="preset-desc">通常セットに<br>「黒宝石(吸収)(1)」を追加</div>
+            </div>
+            <div class="preset-card" style="grid-column: span 2;" onclick="selectPreset(this, 'ext3')">
+                <div class="preset-name">拡張３（フルパック）</div>
+                <div class="preset-desc">「透明宝石(1)」と「黒宝石(吸収)(1)」の両方が追加される最難関モード</div>
+            </div>
+        </div>
+
+        <div class="setup-title" style="font-size:15px; margin-bottom:10px;">カスタム宝石設定</div>
+        <div class="custom-section">
+            <div id="counters-container"></div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="start-btn btn-reset" onclick="showTutorial()" style="flex: 1; background-color: #64748b;">遊び方</button>
+            <button id="startGameBtn" class="start-btn" onclick="startGame()" style="flex: 2;">ゲームスタート</button>
+        </div>
+        <div id="warningMsg" class="warning-msg">宝石が多すぎます！盤面(80マス)に収まるように数を減らしてください。</div>
+    </div>
+</div>
+
+<!-- ==================== 2. プレイ画面 ==================== -->
+<div id="playScreen" class="screen">
+    <header>
+        <h1 id="mode-display-title">オラパマイン</h1>
+        <div class="subtitle" id="mode-display-subtitle"></div>
+    </header>
+
+    <div id="drag-proxy"></div>
+
+    <div class="game-layout">
+        <div class="board-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="side-panel">
+            <div class="panel-section">
+                <div class="panel-title">
+                    <span>発射履歴</span>
+                    <span id="shot-count">0回</span>
+                </div>
+                <div id="historyList" class="history-list">
+                    <div style="color:#94a3b8; padding:15px; text-align:center;">履歴なし</div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">持ち駒</div>
+                <div class="gem-palette" id="gemPalette"></div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">混色表</div>
+                <div class="color-chart-grid" id="colorChartGrid"></div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-check" onclick="checkAnswer()">答え合わせ</button>
+                <div class="btn-group">
+                    <button class="btn-reset" onclick="backToSetup()">設定に戻る</button>
+                    <button class="btn-reveal" onclick="revealAnswer()">正解を表示</button>
+                </div>
+            </div>
+            <div id="status-msg"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 3. チュートリアル画面 ==================== -->
+<div id="tutorialScreen" class="screen">
+    <header>
+        <h1>オラパマインの遊び方</h1>
+        <div class="subtitle">ルールと基本操作</div>
+    </header>
+
+    <div class="setup-container tutorial-container" style="max-width: 550px;">
+        <div class="tutorial-content">
+            
+            <div class="tutorial-section" style="border-left: 4px solid var(--primary-color);">
+                <div class="tutorial-heading">💡 ゲーム概要</div>
+                <p><strong>「超音波の結果から、隠された宝石配置を推理するゲームです。」</strong></p>
+                <p>親（コンピュータ）が盤面上にランダムに隠した複数の宝石の「正確な位置と回転方向」を、外周から超音波を打ち込んだシミュレーション結果（色と出口位置）を手がかりに特定します。</p>
+            </div>
+            
+            <!-- 【図解セクション微調整】 -->
+            <div class="tutorial-section">
+                <div class="tutorial-heading">🔄 超音波の進み方の実例</div>
+                <p>実際のゲーム盤面（マス目、斜辺、枠、境界壁）と同じ見た目の 6×4 サンプル盤面を使った、超音波の挙動の実例です。</p>
+                
+                <div class="tutorial-canvas-container">
+                    <!-- サイズ調整: ラベルと被らないようマージンを広く取る -->
+                    <canvas id="tutorialCanvas" width="240" height="180"></canvas>
+                    <div class="tutorial-canvas-desc">
+                        <div style="margin-bottom: 8px;">
+                            <strong>① 【1 ➔ 3】 の例（90度反射 ＆ 混色）：</strong><br>
+                            発射口 <strong>1</strong> から発射された超音波は、<strong>黄宝石</strong> (B1) の斜辺で右に90度屈折し、さらに<strong>赤宝石</strong> (B3) の斜辺で上に90度屈折して、出口 <strong>3</strong> から出ていきます。<br>
+                            この際、超音波は「黄宝石」と「赤宝石」の両方を通過するため、混色により最終的に <strong>● 橙</strong> が結果として検出されます。
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 8px 0;">
+                        <div>
+                            <strong>② 【4 ➔ 4】 の例（180度壁反射）：</strong><br>
+                            発射口 <strong>4</strong> から発射された超音波は、A4の空きマスを通過し、<strong>赤宝石</strong> (B4) に進入した直後、上部にある<strong>太線（境界壁）</strong>に直撃します。<br>
+                            平面の壁に当たるため180度跳ね返り、そのまま発射口 <strong>4</strong> へと逆戻りします。<br>
+                            この際、超音波は「赤宝石」のマスに触れてから戻るため、 <strong>● 赤</strong> が結果として検出されます。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tutorial-section">
+                <div class="tutorial-heading">1. 超音波の撃ち方</div>
+                <p>盤面の外周にある数字（上・右）やアルファベット（下・左）を<strong>タップ</strong>すると、そこから一直線に超音波を発射できます。</p>
+                <div class="tutorial-figure" style="margin-top:4px;">
+                    <div>【斜辺】に当たると ➔ 90度曲がる（反射）</div>
+                    <div>【平面の壁】に当たると ➔ 180度逆戻りする（跳ね返り）</div>
+                </div>
+            </div>
+            
+            <div class="tutorial-section">
+                <div class="tutorial-heading">2. 色の見方</div>
+                <p>超音波が複数の宝石に当たると、色が混ざって外に出てきます。この色から経由した宝石を推測します。</p>
+                <div id="tutorial-colors-container" class="color-chart-grid" style="grid-template-columns: 1fr; margin-top: 8px;">
+                    <!-- JSで動的に追加されます -->
+                </div>
+            </div>
+            
+            <div class="tutorial-section">
+                <div class="tutorial-heading">3. 宝石の配置ルール</div>
+                <p>右側の「持ち駒」パレットから宝石を<strong>ドラッグ</strong>して、盤面に仮置きします。</p>
+                <ul>
+                    <li>宝石同士の壁が重ならなければ、隣接（角接触・点接触・斜め接触）させてもOKです。</li>
+                    <li>少し盤外にはみ出しても、1マスでも盤内に入っていれば保持されます。</li>
+                </ul>
+            </div>
+            
+            <div class="tutorial-section">
+                <div class="tutorial-heading">4. 回転操作</div>
+                <p>盤面に配置した宝石を<strong>タップ</strong>すると、90度ずつ回転します。推理に合わせて向きを調整してください。</p>
+            </div>
+            
+            <div class="tutorial-section">
+                <div class="tutorial-heading">5. 正解判定</div>
+                <p>すべての宝石を配置したら、右下の<strong>「答え合わせ」</strong>ボタンを押して正解かどうか確認してください。</p>
+            </div>
+
+        </div>
+        <button class="start-btn" onclick="backToSetupFromTutorial()">設定画面に戻る</button>
+    </div>
+</div>
+
+<script>
+    const WIDTH = 10, HEIGHT = 8, MARGIN = 35;
+    let CELL_SIZE = 35;
+
+    const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    
+    // 全ての宝石定義
+    const GEM_DEFS = {
+        white_small: { name: "小・白", color: "white", size: 4, cells: [{dx:0,dy:0,s:1,t:0,b:1,l:0,r:1},{dx:1,dy:0,s:-1,t:0,b:1,l:1,r:0},{dx:0,dy:1,s:-1,t:1,b:0,l:0,r:1},{dx:1,dy:1,s:1,t:1,b:0,l:1,r:0}]},
+        yellow: { name: "黄", color: "yellow", size: 3, cells: [{dx:0,dy:0,s:0,t:1,b:1,l:1,r:1},{dx:0,dy:1,s:1,t:1,b:0,l:1,r:0},{dx:1,dy:0,s:1,t:1,b:0,l:1,r:0}]},
+        red: { name: "赤", color: "red", size: 3, cells: [{dx:0,dy:0,s:-1,t:0,b:1,l:1,r:0},{dx:0,dy:1,s:0,t:1,b:1,l:1,r:1},{dx:0,dy:2,s:-1,t:1,b:0,l:0,r:1}]},
+        blue: { name: "大・青", color: "blue", size: 6, cells: [{dx:0,dy:0,s:-1,t:0,b:1,l:1,r:0},{dx:0,dy:1,s:0,t:1,b:1,l:1,r:1},{dx:0,dy:2,s:0,t:1,b:1,l:1,r:1},{dx:0,dy:3,s:1,t:1,b:0,l:1,r:0},{dx:1,dy:1,s:-1,t:0,b:1,l:1,r:0},{dx:1,dy:2,s:1,t:1,b:0,l:1,r:0}]},
+        white_large: { name: "大・白", color: "white", size: 6, cells: [{dx:0,dy:0,s:-1,t:0,b:1,l:1,r:0},{dx:0,dy:1,s:0,t:1,b:1,l:1,r:1},{dx:0,dy:2,s:0,t:1,b:1,l:1,r:1},{dx:0,dy:3,s:1,t:1,b:0,l:1,r:0},{dx:1,dy:1,s:-1,t:0,b:1,l:1,r:0},{dx:1,dy:2,s:1,t:1,b:0,l:1,r:0}]},
+        transparent_gem: { name: "透明宝石", color: "transparent_gem", size: 2, cells: [{dx:0,dy:0,s:1,t:0,b:1,l:0,r:1},{dx:1,dy:0,s:-1,t:0,b:1,l:1,r:0}]},
+        black_gem: { name: "黒宝石", color: "black_gem", size: 2, cells: [{dx:0,dy:0,s:0,t:1,b:1,l:1,r:1},{dx:1,dy:0,s:0,t:1,b:1,l:1,r:1}]}
+    };
+
+    // --- 色表示の共通化定義 ---
+    const COLOR_HEX = {
+        white: "#ffffff", yellow: "#facc15", red: "#ef4444", blue: "#3b82f6",
+        transparent_gem: "rgba(148, 163, 184, 0.15)", black_gem: "#090d16",
+        橙: "#f97316", 紫: "#a855f7", 緑: "#22c55e", 黒: "#1e293b",
+        灰: "#94a3b8", 桃: "#f472b6", ベージュ: "#fef3c7", 薄紫: "#c4b5fd", 
+        薄緑: "#86efac", クリーム: "#fffbeb", 水色: "#7dd3fc", 透明: "transparent",
+        吸収: "#000000",
+        白: "#ffffff", 黄: "#facc15", 赤: "#ef4444", 青: "#3b82f6"
+    };
+
+    const COLOR_DISPLAY_NAMES = {
+        white: "白", yellow: "黄", red: "赤", blue: "青",
+        transparent_gem: "透明", black_gem: "黒",
+        橙: "橙", 紫: "紫", 緑: "緑", 黒: "黒", 灰: "灰", 桃: "桃", 
+        ベージュ: "ベージュ", 薄紫: "薄紫", 薄緑: "薄緑", クリーム: "クリーム", 水色: "水色", 
+        透明: "透明", 吸収: "吸収",
+        白: "白", 黄: "黄", 赤: "赤", 青: "青"
+    };
+
+    function createColorDotHTML(colorKey) {
+        let hex = COLOR_HEX[colorKey] || "#ffffff";
+        let isTransparent = (colorKey === 'transparent_gem' || colorKey === '透明');
+        let isAbsorb = (colorKey === 'black_gem' || colorKey === '吸収');
+        
+        let style = `background:${hex}; border: 1px solid rgba(0,0,0,0.2);`;
+        
+        if (isTransparent) {
+            style = `background:transparent; border:1px dashed #64748b;`;
+        } else if (isAbsorb) {
+            style = `background:#000000; border: 1px solid rgba(255,255,255,0.2);`;
+        }
+        
+        return `<span class="color-dot" style="${style}"></span>`;
+    }
+
+    function createColorLabelHTML(colorKey) {
+        const name = COLOR_DISPLAY_NAMES[colorKey] || colorKey;
+        if (colorKey === "吸収") {
+            return `${createColorDotHTML(colorKey)}<span style="color:#ef4444;">× 吸収されました</span>`;
+        }
+        return `${createColorDotHTML(colorKey)}<span>${name}</span>`;
+    }
+
+    function initColorChart() {
+        const chartContainer = document.getElementById('colorChartGrid');
+        chartContainer.innerHTML = '';
+        
+        const recipes = [
+            { colors: ['red', 'yellow'], res: '橙' },
+            { colors: ['red', 'blue'], res: '紫' },
+            { colors: ['yellow', 'blue'], res: '緑' },
+            { colors: ['red', 'white'], res: '桃' },
+            { colors: ['yellow', 'white'], res: 'クリーム' },
+            { colors: ['blue', 'white'], res: '水色' },
+            { colors: ['red', 'yellow', 'white'], res: 'ベージュ' },
+            { colors: ['red', 'blue', 'white'], res: '薄紫' },
+            { colors: ['yellow', 'blue', 'white'], res: '薄緑' },
+            { colors: ['red', 'yellow', 'blue'], res: '黒' },
+        ];
+        
+        recipes.forEach(r => {
+            const div = document.createElement('div');
+            div.className = 'chart-item';
+            
+            let formulaHTML = r.colors.map(c => createColorDotHTML(c)).join('<span style="margin:0 2px;">+</span>');
+            let resHTML = `<span class="chart-label">${createColorLabelHTML(r.res)}</span>`;
+            
+            div.innerHTML = `${formulaHTML}<span style="margin:0 4px;">=</span>${resHTML}`;
+            chartContainer.appendChild(div);
+        });
+        
+        const grayDiv = document.createElement('div');
+        grayDiv.className = 'chart-item';
+        grayDiv.style.gridColumn = 'span 2';
+        grayDiv.style.justifyContent = 'center';
+        grayDiv.innerHTML = `<span style="font-size:11px; margin-right:8px;">全色混合</span> <span>=</span> <span style="margin-left:8px; display:flex; align-items:center;">${createColorLabelHTML('灰')}</span>`;
+        chartContainer.appendChild(grayDiv);
+        
+        const clearDiv = document.createElement('div');
+        clearDiv.className = 'chart-item';
+        clearDiv.style.gridColumn = 'span 2';
+        clearDiv.style.justifyContent = 'center';
+        clearDiv.innerHTML = `<span style="margin-right:8px; display:flex; align-items:center;">${createColorLabelHTML('透明')}</span> <span>=</span> <span style="font-size:11px; margin-left:8px;">透明宝石のみ / 何にも当たらない</span>`;
+        chartContainer.appendChild(clearDiv);
+        
+        const noteDiv = document.createElement('div');
+        noteDiv.className = 'chart-item';
+        noteDiv.style.justifyContent = 'center';
+        noteDiv.style.background = 'none';
+        noteDiv.style.border = 'none';
+        noteDiv.style.gridColumn = 'span 2';
+        noteDiv.style.color = '#64748b';
+        noteDiv.innerHTML = '※透明・黒は発色しません';
+        chartContainer.appendChild(noteDiv);
+    }
+
+    // --- Tutorial Navigation & Diagrams ---
+    function showTutorial() {
+        document.getElementById('setupScreen').classList.remove('active');
+        document.getElementById('tutorialScreen').classList.add('active');
+        initTutorialColors();
+        
+        // チュートリアル固定図解盤面の描画
+        setTimeout(drawTutorialCanvas, 50);
+    }
+
+    function backToSetupFromTutorial() {
+        document.getElementById('tutorialScreen').classList.remove('active');
+        document.getElementById('setupScreen').classList.add('active');
+    }
+
+    function initTutorialColors() {
+        const container = document.getElementById('tutorial-colors-container');
+        if (container.innerHTML.trim() !== '') return; 
+
+        const examples = [
+            { colors: ['red', 'yellow'], res: '橙' },
+            { colors: ['red', 'blue'], res: '紫' },
+            { colors: ['yellow', 'blue'], res: '緑' }
+        ];
+
+        examples.forEach(r => {
+            const div = document.createElement('div');
+            div.className = 'chart-item';
+            let formulaHTML = r.colors.map(c => createColorDotHTML(c)).join('<span style="margin:0 4px;">+</span>');
+            let resHTML = `<span class="chart-label">${createColorLabelHTML(r.res)}</span>`;
+            div.innerHTML = `${formulaHTML}<span style="margin:0 8px;">=</span>${resHTML}`;
+            container.appendChild(div);
+        });
+    }
+
+    // --- 【図解盤面の修正】 矢印位置と「4 ➔ 4壁反射」の調整 (Tutorial Figure Canvas Modified) ---
+    function drawTutorialCanvas() {
+        const tCanvas = document.getElementById('tutorialCanvas');
+        if (!tCanvas) return;
+        const tCtx = tCanvas.getContext('2d');
+        
+        const tCols = 6;
+        const tRows = 4;
+        const tMarginX = 30; // 余裕をもたせる
+        const tMarginY = 30; // ラベルとビーム起点が被らないように広げる
+        const tCellSize = 30; 
+        
+        tCtx.clearRect(0, 0, tCanvas.width, tCanvas.height);
+        tCtx.font = "bold 11px Arial";
+        tCtx.textAlign = "center";
+        tCtx.textBaseline = "middle";
+        
+        // 1. 外周ラベルの描画
+        tCtx.fillStyle = "#ef4444";
+        for (let x = 0; x < tCols; x++) {
+            tCtx.fillText((x + 1).toString(), tMarginX + x * tCellSize + tCellSize/2, tMarginY/2);
+        }
+        tCtx.fillStyle = "#f59e0b";
+        for (let y = 0; y < tRows; y++) {
+            tCtx.fillText(ALPHABET[y], tMarginX/2, tMarginY + y * tCellSize + tCellSize/2);
+        }
+        
+        tCtx.translate(tMarginX, tMarginY);
+        
+        // 2. 盤面データ (B4を壁反射の説明用に使用)
+        const tBoard = Array.from({ length: tRows }, () => Array.from({ length: tCols }, () => ({
+            color: null, s: 0, t: 0, b: 0, l: 0, r: 0
+        })));
+        
+        // 黄色宝石 (B1, C1, C2)
+        tBoard[1][0] = { color: "yellow", s: 1, t: 0, b: 1, l: 1, r: 0 };
+        tBoard[2][0] = { color: "yellow", s: 0, t: 0, b: 1, l: 1, r: 1 };
+        tBoard[2][1] = { color: "yellow", s: 1, t: 0, b: 1, l: 0, r: 0 };
+        
+        // 赤色宝石 (B3, B4, B5) - B4 は四方壁のマス
+        tBoard[1][2] = { color: "red", s: -1, t: 0, b: 1, l: 1, r: 0 };
+        tBoard[1][3] = { color: "red", s: 0, t: 1, b: 1, l: 1, r: 1 };
+        tBoard[1][4] = { color: "red", s: -1, t: 0, b: 1, l: 0, r: 1 };
+        
+        // 3. マス目・枠線・対角斜辺
+        for (let y = 0; y < tRows; y++) {
+            for (let x = 0; x < tCols; x++) {
+                const cx = x * tCellSize;
+                const cy = y * tCellSize;
+                
+                tCtx.strokeStyle = "#e2e8f0";
+                tCtx.lineWidth = 1;
+                tCtx.strokeRect(cx, cy, tCellSize, tCellSize);
+                
+                const cell = tBoard[y][x];
+                if (cell.color) {
+                    tCtx.fillStyle = COLOR_HEX[cell.color];
+                    tCtx.globalAlpha = 0.45;
+                    tCtx.fillRect(cx, cy, tCellSize, tCellSize);
+                    tCtx.globalAlpha = 1.0;
+                    
+                    tCtx.strokeStyle = "#1e293b";
+                    tCtx.lineWidth = 1.5;
+                    tCtx.strokeRect(cx, cy, tCellSize, tCellSize);
+                    
+                    if (cell.s !== 0) {
+                        tCtx.strokeStyle = "#1e293b";
+                        tCtx.lineWidth = 1.5;
+                        tCtx.beginPath();
+                        if (cell.s === 1) { 
+                            tCtx.moveTo(cx, cy);
+                            tCtx.lineTo(cx + tCellSize, cy + tCellSize);
+                        } else { 
+                            tCtx.moveTo(cx, cy + tCellSize);
+                            tCtx.lineTo(cx + tCellSize, cy);
+                        }
+                        tCtx.stroke();
+                    }
+                }
+            }
+        }
+        
+        // 4. 太い境界壁(障害物)
+        for (let y = 0; y < tRows; y++) {
+            for (let x = 0; x < tCols; x++) {
+                const cx = x * tCellSize;
+                const cy = y * tCellSize;
+                const cell = tBoard[y][x];
+                if (cell.color) {
+                    tCtx.strokeStyle = "#1e293b"; 
+                    tCtx.lineWidth = 3.5;
+                    
+                    if (cell.t) { tCtx.beginPath(); tCtx.moveTo(cx, cy); tCtx.lineTo(cx + tCellSize, cy); tCtx.stroke(); }
+                    if (cell.b) { tCtx.beginPath(); tCtx.moveTo(cx, cy + tCellSize); tCtx.lineTo(cx + tCellSize, cy + tCellSize); tCtx.stroke(); }
+                    if (cell.l) { tCtx.beginPath(); tCtx.moveTo(cx, cy); tCtx.lineTo(cx, cy + tCellSize); tCtx.stroke(); }
+                    if (cell.r) { tCtx.beginPath(); tCtx.moveTo(cx + tCellSize, cy); tCtx.lineTo(cx + tCellSize, cy + tCellSize); tCtx.stroke(); }
+                }
+            }
+        }
+        
+        // 5. 超音波の進路可視化の描画
+        tCtx.setLineDash([2, 2]); 
+        
+        // --- ① 例1：発射口「1」➔ 進入 ➔ B1で屈折 ➔ B3で屈折 ➔ 出口「3」 ---
+        const p1_start = { x: 0 * tCellSize + tCellSize/2, y: -6 }; // 数字より下からスタートして被りを防ぐ
+        const p1_bend1 = { x: 0 * tCellSize + tCellSize/2, y: 1 * tCellSize + tCellSize/2 };
+        const p1_bend2 = { x: 2 * tCellSize + tCellSize/2, y: 1 * tCellSize + tCellSize/2 };
+        const p1_end   = { x: 2 * tCellSize + tCellSize/2, y: -6 };
+        
+        tCtx.lineWidth = 3;
+        
+        tCtx.strokeStyle = COLOR_HEX["red"];
+        tCtx.beginPath();
+        tCtx.moveTo(p1_start.x, p1_start.y);
+        tCtx.lineTo(p1_bend1.x, p1_bend1.y);
+        tCtx.stroke();
+        
+        tCtx.strokeStyle = COLOR_HEX["yellow"];
+        tCtx.beginPath();
+        tCtx.moveTo(p1_bend1.x, p1_bend1.y);
+        tCtx.lineTo(p1_bend2.x, p1_bend2.y);
+        tCtx.stroke();
+        
+        tCtx.strokeStyle = COLOR_HEX["橙"];
+        tCtx.beginPath();
+        tCtx.moveTo(p1_bend2.x, p1_bend2.y);
+        tCtx.lineTo(p1_end.x, p1_end.y);
+        tCtx.stroke();
+        
+        // 矢印（1入口・下向き）
+        tCtx.fillStyle = COLOR_HEX["red"];
+        tCtx.setLineDash([]);
+        tCtx.beginPath();
+        tCtx.moveTo(p1_start.x, p1_start.y + 6);
+        tCtx.lineTo(p1_start.x - 4, p1_start.y);
+        tCtx.lineTo(p1_start.x + 4, p1_start.y);
+        tCtx.fill();
+        
+        // 矢印（3出口・上向き）
+        tCtx.fillStyle = COLOR_HEX["橙"];
+        tCtx.beginPath();
+        tCtx.moveTo(p1_end.x, p1_end.y - 6);
+        tCtx.lineTo(p1_end.x - 4, p1_end.y);
+        tCtx.lineTo(p1_end.x + 4, p1_end.y);
+        tCtx.fill();
+        
+        // --- ② 例2：発射口「4」➔ B4内の上の境界壁で跳ね返り ➔ 出口「4」 ---
+        const p2_start_in  = { x: 3 * tCellSize + tCellSize/2 - 3, y: -6 };
+        const p2_wall_in   = { x: 3 * tCellSize + tCellSize/2 - 3, y: 1 * tCellSize }; // B4マスの上辺(y=30)で反射
+        const p2_wall_out  = { x: 3 * tCellSize + tCellSize/2 + 3, y: 1 * tCellSize };
+        const p2_start_out = { x: 3 * tCellSize + tCellSize/2 + 3, y: -6 };
+        
+        tCtx.lineWidth = 2.5;
+        tCtx.setLineDash([2, 2]);
+        tCtx.strokeStyle = COLOR_HEX["red"];
+        
+        // 往路（下向き）
+        tCtx.beginPath();
+        tCtx.moveTo(p2_start_in.x, p2_start_in.y);
+        tCtx.lineTo(p2_wall_in.x, p2_wall_in.y);
+        tCtx.stroke();
+        
+        // 復路（上向き）
+        tCtx.beginPath();
+        tCtx.moveTo(p2_wall_out.x, p2_wall_out.y);
+        tCtx.lineTo(p2_start_out.x, p2_start_out.y);
+        tCtx.stroke();
+        
+        tCtx.setLineDash([]);
+        
+        // 往路下向き矢印
+        tCtx.fillStyle = COLOR_HEX["red"];
+        tCtx.beginPath();
+        tCtx.moveTo(p2_start_in.x, p2_start_in.y + 6);
+        tCtx.lineTo(p2_start_in.x - 3, p2_start_in.y);
+        tCtx.lineTo(p2_start_in.x + 3, p2_start_in.y);
+        tCtx.fill();
+        
+        // 復路上向き矢印
+        tCtx.beginPath();
+        tCtx.moveTo(p2_start_out.x, p2_start_out.y - 6);
+        tCtx.lineTo(p2_start_out.x - 3, p2_start_out.y);
+        tCtx.lineTo(p2_start_out.x + 3, p2_start_out.y);
+        tCtx.fill();
+        
+        // 衝突エフェクト
+        tCtx.strokeStyle = "#ef4444";
+        tCtx.lineWidth = 1.5;
+        tCtx.beginPath();
+        const collisionX = 3 * tCellSize + tCellSize/2;
+        const collisionY = 1 * tCellSize; // 衝突点はB4の上辺
+        tCtx.moveTo(collisionX - 6, collisionY - 2);
+        tCtx.lineTo(collisionX + 6, collisionY - 2);
+        tCtx.moveTo(collisionX - 4, collisionY - 4);
+        tCtx.lineTo(collisionX + 4, collisionY - 1);
+        tCtx.stroke();
+        
+        tCtx.translate(-tMarginX, -tMarginY);
+    }
+    // ----------------------------
+
+    const PRESETS = {
+        normal: { name: "通常版", white_small: 2, yellow: 1, red: 1, white_large: 1, blue: 1, transparent_gem: 0, black_gem: 0 },
+        easy: { name: "簡単版", white_small: 1, yellow: 1, red: 1, white_large: 1, blue: 1, transparent_gem: 0, black_gem: 0 },
+        ext1: { name: "拡張１", white_small: 1, yellow: 1, red: 1, white_large: 1, blue: 1, transparent_gem: 1, black_gem: 0 },
+        ext2: { name: "拡張２", white_small: 1, yellow: 1, red: 1, white_large: 1, blue: 1, transparent_gem: 0, black_gem: 1 },
+        ext3: { name: "拡張３", white_small: 1, yellow: 1, red: 1, white_large: 1, blue: 1, transparent_gem: 1, black_gem: 1 }
+    };
+
+    let currentConfig = { ...PRESETS.normal };
+
+    let answerBoard = [], answerGems = [], playerGems = [], isGameOver = false;
+    let activeDrag = null; 
+    let lastActionTime = 0; 
+    let revealMode = false;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const dragProxy = document.getElementById('drag-proxy');
+
+    // UI初期化
+    function initCounters() {
+        const container = document.getElementById('counters-container');
+        container.innerHTML = '';
+        Object.keys(GEM_DEFS).forEach(key => {
+            const def = GEM_DEFS[key];
+            const row = document.createElement('div');
+            row.className = 'counter-row';
+            
+            row.innerHTML = `
+                <div class="counter-name">
+                    ${createColorDotHTML(def.color)}
+                    <span>${def.name} (${def.size}マス)</span>
+                </div>
+                <div class="counter-controls">
+                    <button class="counter-btn" onclick="updateCount('${key}', -1)">-</button>
+                    <span class="counter-val" id="count-${key}">0</span>
+                    <button class="counter-btn" onclick="updateCount('${key}', 1)">+</button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+        updateCounterUI();
+        initColorChart(); 
+    }
+
+    function updateCount(key, change) {
+        const newVal = Math.max(0, currentConfig[key] + change);
+        currentConfig[key] = newVal;
+        currentConfig.name = "カスタムモード";
+        updateCounterUI();
+        document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+    }
+
+    function updateCounterUI() {
+        let totalCells = 0;
+        Object.keys(GEM_DEFS).forEach(key => {
+            const val = currentConfig[key] || 0;
+            const element = document.getElementById(`count-${key}`);
+            if (element) {
+                element.innerText = val;
+            }
+            totalCells += val * GEM_DEFS[key].size;
+        });
+
+        const warning = document.getElementById('warningMsg');
+        const startBtn = document.getElementById('startGameBtn');
+        if (totalCells > 40) {
+            warning.innerText = "宝石が多すぎます！盤面(80マス)に収まるように数を減らしてください。";
+            warning.style.display = 'block';
+            startBtn.disabled = true;
+        } else {
+            warning.style.display = 'none';
+            startBtn.disabled = false;
+        }
+    }
+
+    function selectPreset(element, presetKey) {
+        document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+        element.classList.add('active');
+        currentConfig = { ...PRESETS[presetKey] };
+        updateCounterUI();
+    }
+
+    function backToSetup() {
+        document.getElementById('playScreen').classList.remove('active');
+        document.getElementById('setupScreen').classList.add('active');
+    }
+
+    function startGame() {
+        document.getElementById('setupScreen').classList.remove('active');
+        document.getElementById('playScreen').classList.add('active');
+        
+        document.getElementById('mode-display-title').innerText = `オラパマイン`;
+        
+        const activeGemNames = [];
+        Object.keys(currentConfig).forEach(key => {
+            if (GEM_DEFS[key] && currentConfig[key] > 0) {
+                activeGemNames.push(GEM_DEFS[key].name);
+            }
+        });
+        document.getElementById('mode-display-subtitle').innerText = activeGemNames.join(' / ');
+
+        resetGame();
+    }
+
+    function adjustCellSize() {
+        const availableWidth = Math.min(window.innerWidth - 30, 600);
+        CELL_SIZE = Math.floor((availableWidth - MARGIN * 2) / WIDTH);
+        canvas.width = WIDTH * CELL_SIZE + MARGIN * 2;
+        canvas.height = HEIGHT * CELL_SIZE + MARGIN * 2;
+    }
+
+    function getRotatedDesign(type, rot) {
+        let current = JSON.parse(JSON.stringify(GEM_DEFS[type].cells));
+        for (let i = 0; i < (rot % 4); i++) {
+            current = current.map(p => ({ dx: -p.dy, dy: p.dx, s: p.s === 0 ? 0 : -p.s, t: p.l, b: p.r, l: p.b, r: p.t }));
+        }
+        
+        const minDx = Math.min(...current.map(p => p.dx));
+        const minDy = Math.min(...current.map(p => p.dy));
+        current = current.map(p => ({
+            ...p,
+            dx: p.dx - minDx,
+            dy: p.dy - minDy
+        }));
+        
+        return current;
+    }
+
+    function createEmptyBoard() {
+        return Array.from({ length: HEIGHT }, () => Array.from({ length: WIDTH }, () => ({ s: 0, t: 0, b: 0, l: 0, r: 0, color: null })));
+    }
+
+    function mixColors(colorSet) {
+        colorSet.delete("transparent_gem");
+        if (colorSet.size === 0) return "透明";
+        const r = colorSet.has("red"), y = colorSet.has("yellow"), b = colorSet.has("blue"), w = colorSet.has("white");
+        if ([r, y, b].filter(Boolean).length === 3) return w ? "灰" : "黒";
+        
+        if (r && y) return w ? "ベージュ" : "橙";
+        if (r && b) return w ? "薄紫" : "紫";
+        if (y && b) return w ? "薄緑" : "緑";
+        
+        if (r) return w ? "桃" : "赤";
+        if (y) return w ? "クリーム" : "黄";
+        if (b) return w ? "水色" : "青";
+        return w ? "白" : "透明";
+    }
+
+    // --- 超音波シミュレータ ---
+    function simulateRayOnBoard(side, idx, targetBoard) {
+        let x, y, vx, vy;
+        if (side === "top") [x, y, vx, vy] = [idx, 0, 0, 1];
+        else if (side === "bottom") [x, y, vx, vy] = [idx, HEIGHT - 1, 0, -1];
+        else if (side === "left") [x, y, vx, vy] = [0, idx, 1, 0];
+        else if (side === "right") [x, y, vx, vy] = [WIDTH - 1, idx, -1, 0];
+
+        const hitColors = new Set();
+        let absorbed = false;
+        const visitedGemsIndices = new Set();
+        
+        for (let i = 0; i < 200; i++) {
+            if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) break;
+            const cell = targetBoard[y][x];
+            
+            if (cell.color) {
+                hitColors.add(cell.color);
+                if (cell.gemIndex !== undefined) {
+                    visitedGemsIndices.add(cell.gemIndex);
+                }
+            }
+
+            if (cell.color === "black_gem") {
+                absorbed = true;
+                break;
+            }
+
+            if ((vx > 0 && cell.l) || (vx < 0 && cell.r) || (vy > 0 && cell.t) || (vy < 0 && cell.b)) { [vx, vy] = [-vx, -vy]; }
+            else if (cell.s !== 0) { const ovx = vx; vx = vy * -cell.s; vy = ovx * -cell.s; }
+            x += vx; y += vy;
+        }
+
+        let es, ei;
+        if (x < 0) { es = "left"; ei = y; } else if (x >= WIDTH) { es = "right"; ei = y; } else if (y < 0) { es = "top"; ei = x; } else if (y >= HEIGHT) { es = "bottom"; ei = x; }
+        
+        return { 
+            colorKey: absorbed ? "吸収" : mixColors(hitColors), 
+            exit: absorbed ? null : { side: es, idx: ei },
+            visitedGemsIndices: visitedGemsIndices
+        };
+    }
+
+    function simulateRay(side, idx) {
+        return simulateRayOnBoard(side, idx, answerBoard);
+    }
+
+    function hasWallCollision(type, x, y, rot, currentBoard) {
+        const ds = getRotatedDesign(type, rot);
+        
+        for (const p of ds) {
+            const tx = x + p.dx, ty = y + p.dy;
+            if (tx < 0 || tx >= WIDTH || ty < 0 || ty >= HEIGHT) return true;
+            if (currentBoard[ty][tx].color) return true;
+        }
+
+        const dirs = [
+            { nx: 0, ny: -1, selfWall: 't', oppWall: 'b' },
+            { nx: 0, ny: 1,  selfWall: 'b', oppWall: 't' },
+            { nx: -1, ny: 0, selfWall: 'l', oppWall: 'r' },
+            { nx: 1, ny: 0,  selfWall: 'r', oppWall: 'l' }
+        ];
+
+        for (const p of ds) {
+            const tx = x + p.dx, ty = y + p.dy;
+            for (const d of dirs) {
+                const adjX = tx + d.nx;
+                const adjY = ty + d.ny;
+                if (adjX >= 0 && adjX < WIDTH && adjY >= 0 && adjY < HEIGHT) {
+                    const adjCell = currentBoard[adjY][adjX];
+                    if (adjCell.color && p[d.selfWall] === 1 && adjCell[d.oppWall] === 1) {
+                        return true; 
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function isPartiallyWithinBoard(type, x, y, rot) {
+        const ds = getRotatedDesign(type, rot);
+        for (const p of ds) {
+            const tx = x + p.dx, ty = y + p.dy;
+            if (tx >= 0 && tx < WIDTH && ty >= 0 && ty < HEIGHT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = "bold 13px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        
+        for (let i = 0; i < WIDTH; i++) {
+            ctx.fillStyle = "#ef4444"; ctx.fillText(getLabel("top", i), MARGIN + i * CELL_SIZE + CELL_SIZE/2, MARGIN/2);
+            ctx.fillStyle = "#f59e0b"; ctx.fillText(getLabel("bottom", i), MARGIN + i * CELL_SIZE + CELL_SIZE/2, canvas.height - MARGIN/2);
+        }
+        for (let i = 0; i < HEIGHT; i++) {
+            ctx.fillStyle = "#f59e0b"; ctx.fillText(getLabel("left", i), MARGIN/2, MARGIN + i * CELL_SIZE + CELL_SIZE/2);
+            ctx.fillStyle = "#ef4444"; ctx.fillText(getLabel("right", i), canvas.width - MARGIN/2, MARGIN + i * CELL_SIZE + CELL_SIZE/2);
+        }
+
+        ctx.translate(MARGIN, MARGIN);
+        const db = createEmptyBoard();
+        
+        const targetGems = revealMode ? answerGems : playerGems;
+        
+        targetGems.forEach(g => {
+            const ds = getRotatedDesign(g.type, g.rot);
+            ds.forEach(p => {
+                const tx = g.x + p.dx, ty = g.y + p.dy;
+                if (tx >= 0 && tx < WIDTH && ty >= 0 && ty < HEIGHT) {
+                    db[ty][tx] = { ...p, color: GEM_DEFS[g.type].color };
+                }
+            });
+        });
+
+        for (let y = 0; y < HEIGHT; y++) {
+            for (let x = 0; x < WIDTH; x++) {
+                const cell = db[y][x], cx = x * CELL_SIZE, cy = y * CELL_SIZE;
+                ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1; ctx.strokeRect(cx, cy, CELL_SIZE, CELL_SIZE);
+                if (cell.color) {
+                    ctx.fillStyle = COLOR_HEX[cell.color] || cell.color; ctx.globalAlpha = 0.5; ctx.fillRect(cx, cy, CELL_SIZE, CELL_SIZE); ctx.globalAlpha = 1.0;
+                    ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 3;
+                    
+                    if (cell.color === "transparent_gem") {
+                        ctx.strokeStyle = "#64748b";
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([3, 3]);
+                    }
+
+                    if (cell.t) { ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + CELL_SIZE, cy); ctx.stroke(); }
+                    if (cell.b) { ctx.beginPath(); ctx.moveTo(cx, cy + CELL_SIZE); ctx.lineTo(cx + CELL_SIZE, cy + CELL_SIZE); ctx.stroke(); }
+                    if (cell.l) { ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + CELL_SIZE); ctx.stroke(); }
+                    if (cell.r) { ctx.beginPath(); ctx.moveTo(cx + CELL_SIZE, cy); ctx.lineTo(cx + CELL_SIZE, cy + CELL_SIZE); ctx.stroke(); }
+                    if (cell.s !== 0) {
+                        ctx.lineWidth = 1.5; ctx.beginPath();
+                        if (cell.s === 1) { ctx.moveTo(cx, cy + CELL_SIZE); ctx.lineTo(cx + CELL_SIZE, cy); }
+                        else { ctx.moveTo(cx, cy); ctx.lineTo(cx + CELL_SIZE, cy + CELL_SIZE); }
+                        ctx.stroke();
+                    }
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+        ctx.translate(-MARGIN, -MARGIN);
+    }
+
+    // --- 設定＆初期化 ---
+    function resetGame() {
+        adjustCellSize();
+        
+        isGameOver = false; 
+        revealMode = false;
+        
+        playerGems = []; 
+        answerGems = [];
+        answerBoard = createEmptyBoard();
+        document.getElementById('shot-count').innerText = "0回";
+        document.getElementById('status-msg').innerText = "";
+        document.getElementById('historyList').innerHTML = '<div style="color:#94a3b8; padding:15px; text-align:center;">履歴なし</div>';
+
+        const typesToPlace = [];
+        Object.keys(currentConfig).forEach(key => {
+            if (!GEM_DEFS[key]) return;
+            const count = currentConfig[key];
+            for (let i = 0; i < count; i++) {
+                typesToPlace.push(key);
+            }
+        });
+
+        const palette = document.getElementById('gemPalette'); palette.innerHTML = '';
+        typesToPlace.forEach((t, i) => {
+            const def = GEM_DEFS[t];
+            const div = document.createElement('div');
+            div.className = 'gem-piece';
+            div.style.backgroundColor = (def.color === 'white') ? '#fff' : (def.color === 'yellow' ? '#fffbeb' : (def.color === 'red' ? '#fef2f2' : (def.color === 'blue' ? '#eff6ff' : (def.color === 'transparent_gem' ? '#f8fafc' : '#f1f5f9'))));
+            if (def.color === 'transparent_gem') {
+                div.style.borderStyle = 'dashed';
+            }
+            div.innerHTML = `
+                ${createColorDotHTML(def.color)}
+                <span style="margin-top:2px;">${def.name}</span>
+            `;
+            div.dataset.type = t;
+            const startHandler = (e) => startDrag(e, t, 'palette', div);
+            div.addEventListener('mousedown', startHandler);
+            div.addEventListener('touchstart', startHandler, {passive: false});
+            palette.appendChild(div);
+        });
+
+        let generationSuccess = false;
+        let mainAttempts = 0;
+
+        while (!generationSuccess && mainAttempts < 1000) {
+            mainAttempts++;
+            answerGems = [];
+            answerBoard = createEmptyBoard();
+
+            let localSuccess = true;
+            for (let i = 0; i < typesToPlace.length; i++) {
+                const type = typesToPlace[i];
+                let placed = false;
+                let att = 0;
+
+                while (!placed && att < 150) {
+                    const rx = Math.floor(Math.random() * WIDTH);
+                    const ry = Math.floor(Math.random() * HEIGHT);
+                    const rr = Math.floor(Math.random() * 4);
+
+                    if (!hasWallCollision(type, rx, ry, rr, answerBoard)) {
+                        const ds = getRotatedDesign(type, rr);
+                        ds.forEach(p => {
+                            answerBoard[ry + p.dy][rx + p.dx] = { 
+                                ...p, 
+                                color: GEM_DEFS[type].color,
+                                gemIndex: i
+                            };
+                        });
+                        answerGems.push({type, x: rx, y: ry, rot: rr});
+                        placed = true;
+                    }
+                    att++;
+                }
+
+                if (!placed) {
+                    localSuccess = false;
+                    break;
+                }
+            }
+
+            if (localSuccess) {
+                const checkedGemsIndices = new Set();
+                
+                const launchPoints = [];
+                for (let x = 0; x < WIDTH; x++) {
+                    launchPoints.push({ side: "top", idx: x });
+                    launchPoints.push({ side: "bottom", idx: x });
+                }
+                for (let y = 0; y < HEIGHT; y++) {
+                    launchPoints.push({ side: "left", idx: y });
+                    launchPoints.push({ side: "right", idx: y });
+                }
+
+                launchPoints.forEach(pt => {
+                    const sim = simulateRayOnBoard(pt.side, pt.idx, answerBoard);
+                    sim.visitedGemsIndices.forEach(idx => checkedGemsIndices.add(idx));
+                });
+
+                if (checkedGemsIndices.size === typesToPlace.length) {
+                    generationSuccess = true;
+                }
+            }
+        }
+
+        if (!generationSuccess) {
+            const warning = document.getElementById('warningMsg');
+            warning.innerText = "配置生成に失敗しました（超音波の到達テスト未クリア）。設定を減らして再スタートしてください。";
+            warning.style.display = 'block';
+            backToSetup();
+            return;
+        }
+
+        draw();
+    }
+
+    // --- ドラッグ＆ドロップ ---
+    function startDrag(e, type, source, element, gemId = null) {
+        if (isGameOver) return;
+        if (e.type === 'mousedown' && e.button !== 0) return;
+        
+        e.preventDefault();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        let grabOffsetX = 0;
+        let grabOffsetY = 0;
+        let originX = 0, originY = 0, originRot = 0;
+        
+        const rect = canvas.getBoundingClientRect();
+        
+        if (source === 'board') {
+            const boardX = clientX - rect.left - MARGIN;
+            const boardY = clientY - rect.top - MARGIN;
+            const gem = playerGems.find(g => g.id === gemId);
+            originX = gem.x;
+            originY = gem.y;
+            originRot = gem.rot;
+            
+            const gemPixelX = originX * CELL_SIZE;
+            const gemPixelY = originY * CELL_SIZE;
+            grabOffsetX = boardX - gemPixelX;
+            grabOffsetY = boardY - gemPixelY;
+        } else {
+            const ds = getRotatedDesign(type, 0);
+            const w = (Math.max(...ds.map(p=>p.dx)) + 1) * CELL_SIZE;
+            const h = (Math.max(...ds.map(p=>p.dy)) + 1) * CELL_SIZE;
+            grabOffsetX = w / 2;
+            grabOffsetY = h / 2;
+        }
+
+        activeDrag = { 
+            type, 
+            source, 
+            id: gemId || Date.now(), 
+            grabOffsetX,
+            grabOffsetY,
+            element, 
+            startX: clientX, 
+            startY: clientY,
+            originX,
+            originY,
+            originRot
+        };
+
+        dragProxy.innerText = GEM_DEFS[type].name;
+        dragProxy.style.display = 'block';
+        updateDragProxy(clientX, clientY);
+    }
+
+    function updateDragProxy(x, y) {
+        if (!activeDrag) return;
+        dragProxy.style.left = x + 'px';
+        dragProxy.style.top = y + 'px';
+    }
+
+    function handleMove(e) {
+        if (!activeDrag) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        updateDragProxy(clientX, clientY);
+    }
+
+    function handleEnd(e) {
+        if (!activeDrag) return;
+        const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        
+        const rect = canvas.getBoundingClientRect();
+        const boardX = clientX - rect.left - MARGIN;
+        const boardY = clientY - rect.top - MARGIN;
+
+        const dist = Math.hypot(clientX - activeDrag.startX, clientY - activeDrag.startY);
+        
+        if (activeDrag.source === 'board' && dist < 10) {
+            const gem = playerGems.find(g => g.id === activeDrag.id);
+            if (gem) gem.rot = (gem.rot + 1) % 4;
+        } 
+        else {
+            const nx = Math.round((boardX - activeDrag.grabOffsetX) / CELL_SIZE);
+            const ny = Math.round((boardY - activeDrag.grabOffsetY) / CELL_SIZE);
+            
+            let currentRot = (activeDrag.source === 'board') ? activeDrag.originRot : 0;
+
+            if (isPartiallyWithinBoard(activeDrag.type, nx, ny, currentRot)) {
+                if (activeDrag.source === 'palette') {
+                    playerGems.push({ type: activeDrag.type, x: nx, y: ny, rot: 0, id: activeDrag.id });
+                    activeDrag.element.style.visibility = 'hidden';
+                } else {
+                    const gem = playerGems.find(g => g.id === activeDrag.id);
+                    if (gem) { gem.x = nx; gem.y = ny; }
+                }
+            } else {
+                if (activeDrag.source === 'board') {
+                    removeGem(activeDrag.id);
+                }
+            }
+        }
+
+        dragProxy.style.display = 'none';
+        activeDrag = null;
+        draw();
+    }
+
+    function tryLaunch(e) {
+        const now = Date.now();
+        if (now - lastActionTime < 300) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const mx = clientX - rect.left, my = clientY - rect.top;
+
+        if (mx < MARGIN || mx > canvas.width - MARGIN || my < MARGIN || my > canvas.height - MARGIN) {
+            let s, i;
+            if (my < MARGIN) { s = "top"; i = Math.floor((mx - MARGIN) / CELL_SIZE); }
+            else if (my > canvas.height - MARGIN) { s = "bottom"; i = Math.floor((mx - MARGIN) / CELL_SIZE); }
+            else if (mx < MARGIN) { s = "left"; i = Math.floor((my - MARGIN) / CELL_SIZE); }
+            else { s = "right"; i = Math.floor((my - MARGIN) / CELL_SIZE); }
+            
+            if (s && i >= 0 && (s === "top" || s === "bottom" ? i < WIDTH : i < HEIGHT)) {
+                lastActionTime = now;
+                const res = simulateRay(s, i);
+                addHistory(getLabel(s, i), res.exit ? getLabel(res.exit.side, res.exit.idx) : "吸収", res.colorKey);
+            }
+        } else {
+            const bx = Math.floor((mx - MARGIN) / CELL_SIZE), by = Math.floor((my - MARGIN) / CELL_SIZE);
+            const hit = playerGems.find(g => getRotatedDesign(g.type, g.rot).some(p => g.x + p.dx === bx && g.y + p.dy === by));
+            if (hit) startDrag(e, hit.type, 'board', null, hit.id);
+        }
+    }
+
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); tryLaunch(e); }, {passive: false});
+    canvas.addEventListener('mousedown', (e) => { if (e.button !== 0) return; tryLaunch(e); });
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove, {passive: false});
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchend', handleEnd);
+
+    function addHistory(start, end, colorKey) {
+        const list = document.getElementById('historyList');
+        if (list.innerText === "履歴なし") list.innerHTML = "";
+        const count = document.getElementById('shot-count');
+        count.innerText = (parseInt(count.innerText) + 1) + "回";
+        const item = document.createElement('div'); item.className = 'history-item';
+        
+        item.innerHTML = `<span>${start} → ${end}</span> <span class="history-label">${createColorLabelHTML(colorKey)}</span>`;
+        list.prepend(item);
+    }
+
+    function checkAnswer() {
+        if (isGameOver) return;
+        const sig = (gs) => gs.map(g => { const ds = getRotatedDesign(g.type, g.rot); return `${g.type}:` + ds.map(p => `${g.x + p.dx},${g.y + p.dy}`).sort().join('|'); }).sort().join('###');
+        const m = document.getElementById('status-msg');
+        if (sig(playerGems) === sig(answerGems)) { isGameOver = true; m.innerText = "🎉 正解！完璧な配置です！"; m.style.color = "#059669"; }
+        else { m.innerText = "❌ まだどこかが違います。壁の衝突や重なりがないか確認してください。"; m.style.color = "#ef4444"; }
+    }
+
+    function revealAnswer() {
+        revealMode = true; 
+        isGameOver = true; 
+
+        document.querySelectorAll('.gem-piece').forEach(el => {
+            el.style.visibility = 'hidden';
+        });
+
+        draw();
+
+        const m = document.getElementById('status-msg');
+        m.innerText = "正解配置を表示しています";
+        m.style.color = "#2563eb";
+    }
+
+    function removeGem(id) {
+        const idx = playerGems.findIndex(g => g.id === id);
+        if (idx !== -1) {
+            const type = playerGems[idx].type;
+            playerGems.splice(idx, 1);
+            const els = document.querySelectorAll('.gem-piece');
+            for(let el of els) {
+                if (el.dataset.type === type && el.style.visibility === 'hidden') {
+                    el.style.visibility = 'visible';
+                    break;
+                }
+            }
+        }
+    }
+
+    function getLabel(s, i) { 
+        if (s === "top") return (i + 1).toString(); 
+        if (s === "right") return (i + 11).toString(); 
+        if (s === "bottom") return ALPHABET[i + 8]; 
+        return ALPHABET[i]; 
+    }
+
+    initCounters();
+</script>
+</body>
+</html>
